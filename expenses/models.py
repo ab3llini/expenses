@@ -84,9 +84,11 @@ class Granularity(str, Enum):
     MONTH = "Month"
     WEEK = "Week"
 
+
 class CategoryLevel(str, Enum):
     Large = "category"
     Small = "subcategory"
+
 
 class CashFlow(str, Enum):
     Expense = "expense"

@@ -1,11 +1,6 @@
-from datetime import date
-
 import pandas as pd
 import streamlit as st
-from streamlit.runtime.uploaded_file_manager import UploadedFile
-from dateutil.relativedelta import relativedelta
-from expenses.models import CashFlow, CategoryLevel
-
+from models import CashFlow
 
 
 @st.cache_data
