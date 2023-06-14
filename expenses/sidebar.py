@@ -1,16 +1,10 @@
-from datetime import date, timedelta
-
 import streamlit as st
-from models import Granularity
 from streamlit.runtime.uploaded_file_manager import UploadedFile
 
 
-def render() -> tuple[UploadedFile | None, date, date, Granularity, int]:
-    # Sidebar
-    st.sidebar.title("Dashboard Settings")
-
+def render() -> tuple[UploadedFile | None, int]:
     # File upload
-    st.sidebar.subheader("Upload Bank Transactions")
+    st.sidebar.subheader("Upload Sella Transactions")
     uploaded_file = st.sidebar.file_uploader(
         "Choose a CSV file",
         type=["csv"],
@@ -18,25 +12,13 @@ def render() -> tuple[UploadedFile | None, date, date, Granularity, int]:
         accept_multiple_files=False,
     )
 
-    # Date range selector
-    st.sidebar.subheader("Rendering Settings")
-    date_from = st.sidebar.date_input(
-        "Start Date",
-        help="Select the start date for the dashboard",
-        value=date.today() - timedelta(days=365),
-    )
-    date_to = st.sidebar.date_input(
-        "End Date", help="Select the end date for the dashboard", value=date.today()
-    )
+    st.sidebar.divider()
 
-    # Granularity selector
-    granularity = st.sidebar.selectbox(
-        "Granularity", [grain.value for grain in Granularity]
-    )
+    st.sidebar.subheader("Settings")
 
     # Plot Height
     plot_height = st.sidebar.slider(
         "Plot Height", min_value=400, max_value=800, value=500, step=50
     )
 
-    return uploaded_file, date_from, date_to, granularity, plot_height
+    return uploaded_file, plot_height

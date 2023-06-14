@@ -12,18 +12,20 @@ def earnings_expenses_bar(
     df: pd.DataFrame, granularity: Granularity, height: int
 ) -> go.Figure:
     group_df = df.groupby([granularity.lower()]).agg(
-        {CashFlow.Earning.value: "sum", CashFlow.Expense.value: "sum"}
+        {CashFlow.Earning: "sum", CashFlow.Expense: "sum"}
     )
     group_df = group_df.reset_index().melt(
         id_vars=granularity.lower(),
-        value_vars=[CashFlow.Earning.value, CashFlow.Expense.value],
+        value_vars=[CashFlow.Earning, CashFlow.Expense],
         var_name="cash flow",
         value_name="euro",
     )
     group_df = group_df[group_df["euro"] > 0]
     return px.bar(
         group_df,
-        x=granularity.lower(),
+        x=granularity.lower()
+        if granularity == Granularity.WEEK
+        else group_df[Granularity.MONTH.lower()].dt.strftime("%B %Y"),
         y="euro",
         color="cash flow",
         barmode="group",
@@ -41,19 +43,19 @@ def bar(
     height: int,
 ):
     group_df = (
-        df[~pd.isna(df[flow.value])]
-        .groupby([granularity.lower(), level.value])
-        .agg({flow.value: "sum"})
-    )
-    group_df = group_df[group_df[flow.value] > 0]
+        df[~pd.isna(df[flow])].groupby([granularity.lower(), level]).agg({flow: "sum"})
+    ).reset_index()
+    group_df = group_df[group_df[flow] > 0]
 
     title = f"{'Expenses' if flow == CashFlow.Expense else 'Earnings'} by {'Category' if level == CategoryLevel.Large else 'Subcategory'}"
 
     return px.bar(
-        group_df.reset_index(),
-        x=granularity.lower(),
-        y=flow.value,
-        color=level.value,
+        group_df,
+        x=granularity.lower()
+        if granularity == Granularity.WEEK
+        else group_df[Granularity.MONTH.lower()].dt.strftime("%B %Y"),
+        y=flow,
+        color=level,
         title=title,
         height=height,
     )
@@ -61,11 +63,11 @@ def bar(
 
 @st.cache_data
 def flow_pie(df: pd.DataFrame, flow: CashFlow, level: CategoryLevel):
-    group_df = df.groupby([level.value])[flow.value].sum().reset_index()
-    group_df = group_df[group_df[flow.value] > 0]
+    group_df = df.groupby([level])[flow].sum().reset_index()
+    group_df = group_df[group_df[flow] > 0]
 
-    title = f"{flow.value.capitalize()} Pie for {'Category' if level == CategoryLevel.Large else 'Subcategory'}"
-    fig = px.pie(group_df, values=flow.value, names=level.value, title=title)
+    title = f"{flow.capitalize()} Pie for {'Category' if level == CategoryLevel.Large else 'Subcategory'}"
+    fig = px.pie(group_df, values=flow, names=level, title=title)
     fig.update_traces(textposition="inside", textinfo="percent+label")
 
     return fig
@@ -73,10 +75,10 @@ def flow_pie(df: pd.DataFrame, flow: CashFlow, level: CategoryLevel):
 
 @st.cache_data
 def operation_pie(df: pd.DataFrame, flow: CashFlow):
-    group_df = df.groupby(["operation"])[flow.value].sum().reset_index()
-    group_df = group_df[group_df[flow.value] > 0]
-    title = f"{flow.value.capitalize()} Pie for Operations"
-    fig = px.pie(group_df, values=flow.value, names="operation", title=title)
+    group_df = df.groupby(["operation"])[flow].sum().reset_index()
+    group_df = group_df[group_df[flow] > 0]
+    title = f"{flow.capitalize()} Pie for Operations"
+    fig = px.pie(group_df, values=flow, names="operation", title=title)
     fig.update_traces(textposition="inside", textinfo="percent+label")
 
     return fig
@@ -86,13 +88,12 @@ def operation_pie(df: pd.DataFrame, flow: CashFlow):
 def profit_loss_line(df: pd.DataFrame, granularity: str, height: int) -> go.Figure:
     group_df = (
         df.groupby([granularity.lower()])
-        .agg({CashFlow.Earning.value: "sum", CashFlow.Expense.value: "sum"})
+        .agg({CashFlow.Earning: "sum", CashFlow.Expense: "sum"})
         .reset_index()
     )
     group_df = group_df.fillna(0)
     group_df["profit / loss"] = (
-        group_df[CashFlow.Earning.value].cumsum()
-        - group_df[CashFlow.Expense.value].cumsum()
+        group_df[CashFlow.Earning].cumsum() - group_df[CashFlow.Expense].cumsum()
     )
 
     # Separate data into positive and negative earnings
@@ -107,14 +108,18 @@ def profit_loss_line(df: pd.DataFrame, granularity: str, height: int) -> go.Figu
 
     # Create Plotly graph objects
     trace_pos = go.Scatter(
-        x=data_pos[granularity.lower()],
+        x=granularity.lower()
+        if granularity == Granularity.WEEK
+        else group_df[Granularity.MONTH.lower()].dt.strftime("%B %Y"),
         y=data_pos["profit / loss"],
         mode="lines+markers",
         fill="tozeroy",
         name="Earnings",
     )
     trace_neg = go.Scatter(
-        x=data_neg[granularity.lower()],
+        x=granularity.lower()
+        if granularity == Granularity.WEEK
+        else group_df[Granularity.MONTH.lower()].dt.strftime("%B %Y"),
         y=data_neg["profit / loss"],
         mode="lines+markers",
         fill="tozeroy",
@@ -140,8 +145,8 @@ def flow_heatmap(
     level: CategoryLevel,
     height: int,
 ):
-    heatmap_df = df[~pd.isna(df[flow.value])].pivot_table(
-        index=level.value, columns=granularity.lower(), values=flow.value, aggfunc="sum"
+    heatmap_df = df[~pd.isna(df[flow])].pivot_table(
+        index=level, columns=granularity.lower(), values=flow, aggfunc="sum"
     )
 
     heatmap_df.fillna(0, inplace=True)
@@ -154,6 +159,63 @@ def flow_heatmap(
         y=heatmap_df.index,
         labels=dict(color="euro"),
         title=title,
+        height=height,
+    )
+    return fig
+
+
+import plotly.express as px
+
+
+@st.cache_data
+def top_k_vendor_transactions(df: pd.DataFrame, k: int, height: int) -> go.Figure:
+    plot_df = df.copy()
+    plot_df.loc[:, "description"] = plot_df["description"].apply(
+        lambda s: s[:25] + ".." if len(s) > 25 else s
+    )
+    plot_df = plot_df.groupby(["description", "operation"]).size().reset_index()
+    plot_df.rename(columns={0: "transactions", "description": "vendor"}, inplace=True)
+    plot_df.sort_values(by="transactions", ascending=False, inplace=True)
+    plot_df = plot_df[:k]
+
+    fig = px.bar(
+        plot_df,
+        x="transactions",
+        y="vendor",
+        color="operation",
+        title=f"Top {k} Transactors",
+        height=height,
+    )
+    return fig
+
+
+@st.cache_data
+def top_k_vendor_flow(
+    df: pd.DataFrame, k: int, flow: CashFlow, height: int, operation: str | None = None
+) -> go.Figure:
+    plot_df = df.copy()
+
+    if operation is not None:
+        plot_df = plot_df[plot_df["operation"] == operation]
+
+    plot_df.loc[:, "description"] = plot_df["description"].apply(
+        lambda s: s[:25] + ".." if len(s) > 25 else s
+    )
+    plot_df = (
+        plot_df[~plot_df[flow].isna()]
+        .groupby(["description", "operation"])
+        .agg({flow: "sum"})
+        .reset_index()
+    )
+    plot_df.rename(columns={"description": "vendor"}, inplace=True)
+    plot_df.sort_values(by=flow, ascending=False, inplace=True)
+
+    fig = px.bar(
+        plot_df[:k],
+        x=flow,
+        y="vendor",
+        color="operation" if not operation else None,
+        title=f'Top {k} {"Vendors" if flow == CashFlow.Expense else "Payers"}{" - "+ operation if operation else ""}',
         height=height,
     )
     return fig

@@ -5,4 +5,4 @@ from models import CashFlow
 
 @st.cache_data
 def total(df: pd.DataFrame, flow: CashFlow) -> int:
-    return int(df[flow.value].sum())
+    return int(df[flow].sum())
