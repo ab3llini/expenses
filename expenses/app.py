@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 
 import metrics
 import ops
@@ -50,6 +50,9 @@ def filters(
         )
 
     return date_from, date_to, granularity, categories, subcategories, operations
+
+# wrute the same function from above, but improved
+# def filters(
 
 
 def main():
@@ -168,7 +171,11 @@ def main():
     )
 
     st.subheader("Transactions")
+
     df
+
+
+
 
 
 if __name__ == "__main__":

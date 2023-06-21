@@ -11,6 +11,7 @@ from models import CashFlow, CategoryLevel, Granularity
 def earnings_expenses_bar(
     df: pd.DataFrame, granularity: Granularity, height: int
 ) -> go.Figure:
+
     group_df = df.groupby([granularity.lower()]).agg(
         {CashFlow.Earning: "sum", CashFlow.Expense: "sum"}
     )
@@ -21,17 +22,18 @@ def earnings_expenses_bar(
         value_name="euro",
     )
     group_df = group_df[group_df["euro"] > 0]
-    return px.bar(
+    group_df = group_df.sort_values(by=granularity.lower(), ascending=True)
+    plot = px.bar(
         group_df,
-        x=granularity.lower()
-        if granularity == Granularity.WEEK
-        else group_df[Granularity.MONTH.lower()].dt.strftime("%B %Y"),
+        x=granularity.lower(),
         y="euro",
         color="cash flow",
         barmode="group",
         height=height,
         title="Earnings vs Expenses",
     )
+
+    return plot
 
 
 @st.cache_data
@@ -46,14 +48,14 @@ def bar(
         df[~pd.isna(df[flow])].groupby([granularity.lower(), level]).agg({flow: "sum"})
     ).reset_index()
     group_df = group_df[group_df[flow] > 0]
+    
+    group_df = group_df.sort_values(by=granularity.lower(), ascending=True)
 
     title = f"{'Expenses' if flow == CashFlow.Expense else 'Earnings'} by {'Category' if level == CategoryLevel.Large else 'Subcategory'}"
 
     return px.bar(
         group_df,
-        x=granularity.lower()
-        if granularity == Granularity.WEEK
-        else group_df[Granularity.MONTH.lower()].dt.strftime("%B %Y"),
+        x=granularity.lower(),
         y=flow,
         color=level,
         title=title,
@@ -219,3 +221,7 @@ def top_k_vendor_flow(
         height=height,
     )
     return fig
+
+
+
+

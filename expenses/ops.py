@@ -39,6 +39,10 @@ def transform(df: pd.DataFrame) -> pd.DataFrame:
         }
     )
 
+    # For each column in a set, replace nan with other
+    for col in [CategoryLevel.Large, CategoryLevel.Small, "operation", "description"]:
+        out[col] = out[col].fillna("N.A.")
+
     for cash_flow in CashFlow:
         out[cash_flow] = out[cash_flow].str.replace(".", "")
         out[cash_flow] = out[cash_flow].str.replace(",", ".").astype(float)
