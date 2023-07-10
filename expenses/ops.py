@@ -15,6 +15,12 @@ def load_df(file: UploadedFile | None) -> pd.DataFrame:
 def transform(df: pd.DataFrame) -> pd.DataFrame:
     out = df.copy()
 
+    # Add a column named "Credito" whihc is the opposite of "Debito"
+    # Start from the column named "Importo", which coulbe be a positive or negative number
+    # If it's positive, then it's a credit, so we put it in the "Credito" column
+    # If it's negative, then it's a debit, so we put it in the "Debito" column
+    # First cast the column Importo to float
+
     out = out[
         [
             "Data operazione",
@@ -22,8 +28,7 @@ def transform(df: pd.DataFrame) -> pd.DataFrame:
             "Categoria",
             "Sottocategoria",
             "Etichette",
-            "Debito",
-            "Credito",
+            "Importo",
         ]
     ]
 
@@ -34,8 +39,6 @@ def transform(df: pd.DataFrame) -> pd.DataFrame:
             "Descrizione": "description",
             "Sottocategoria": CategoryLevel.Small,
             "Etichette": "operation",
-            "Debito": CashFlow.Expense,
-            "Credito": CashFlow.Earning,
         }
     )
 
@@ -43,9 +46,13 @@ def transform(df: pd.DataFrame) -> pd.DataFrame:
     for col in [CategoryLevel.Large, CategoryLevel.Small, "operation", "description"]:
         out[col] = out[col].fillna("N.A.")
 
-    for cash_flow in CashFlow:
-        out[cash_flow] = out[cash_flow].str.replace(".", "")
-        out[cash_flow] = out[cash_flow].str.replace(",", ".").astype(float)
+    
+    out["Importo"] = out["Importo"].str.replace(".", "")
+    out["Importo"] = out["Importo"].str.replace(",", ".").astype(float)
+    out[CashFlow.Earning] = out["Importo"].apply(lambda x: x if x > 0 else 0)
+    out[CashFlow.Expense] = out["Importo"].apply(lambda x: x if x < 0 else 0)
+
+    out.drop(columns=["Importo"], inplace=True)
 
     out.loc[:, CashFlow.Expense] *= -1
 
