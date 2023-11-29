@@ -1,7 +1,7 @@
 
 # 📈 Expenses
 
-#### An simple way to monitor how you earn and spend your money. Extensible to any bank.
+#### A simple way to monitor how you earn and spend your money. Extensible to any bank.
 
 
 <p align="center">
