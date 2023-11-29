@@ -19,6 +19,9 @@ format: up
 typecheck: up
 	${exec-in-container} mypy .
 
+mypy-stubs: up
+	${exec-in-container} mypy --install-types --non-interactive
+
 patch:
 	${exec-in-container} poetry version patch
 

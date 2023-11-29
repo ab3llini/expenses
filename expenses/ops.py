@@ -2,95 +2,16 @@ from datetime import date
 
 import pandas as pd
 import streamlit as st
-from models import CashFlow, CategoryLevel
 from streamlit.runtime.uploaded_file_manager import UploadedFile
 
 
 @st.cache_data
-def load_df(file: UploadedFile | None) -> pd.DataFrame:
+def load_df(file: UploadedFile | None) -> pd.DataFrame | None:
     return pd.read_csv(file) if file else None
 
 
 @st.cache_data
-def transform(df: pd.DataFrame) -> pd.DataFrame:
-    out = df.copy()
-
-    # Add a column named "Credito" whihc is the opposite of "Debito"
-    # Start from the column named "Importo", which coulbe be a positive or negative number
-    # If it's positive, then it's a credit, so we put it in the "Credito" column
-    # If it's negative, then it's a debit, so we put it in the "Debito" column
-    # First cast the column Importo to float
-
-    out = out[
-        [
-            "Data operazione",
-            "Descrizione",
-            "Categoria",
-            "Sottocategoria",
-            "Etichette",
-            "Importo",
-        ]
-    ]
-
-    out = out.rename(
-        columns={
-            "Data operazione": "date",
-            "Categoria": CategoryLevel.Large,
-            "Descrizione": "description",
-            "Sottocategoria": CategoryLevel.Small,
-            "Etichette": "operation",
-        }
-    )
-
-    # For each column in a set, replace nan with other
-    for col in [CategoryLevel.Large, CategoryLevel.Small, "operation", "description"]:
-        out[col] = out[col].fillna("N.A.")
-
-    
-    out["Importo"] = out["Importo"].str.replace(".", "")
-    out["Importo"] = out["Importo"].str.replace(",", ".").astype(float)
-    out[CashFlow.Earning] = out["Importo"].apply(lambda x: x if x > 0 else 0)
-    out[CashFlow.Expense] = out["Importo"].apply(lambda x: x if x < 0 else 0)
-
-    out.drop(columns=["Importo"], inplace=True)
-
-    out.loc[:, CashFlow.Expense] *= -1
-
-    out["date"] = pd.to_datetime(out["date"], format="%d/%m/%Y")
-    out["week"] = out["date"].dt.to_period("W").apply(lambda r: r.start_time)
-    out["month"] = out["date"].dt.to_period("M").apply(lambda r: r.start_time)
-    out["date"] = out["date"].dt.date
-
-    out = out[~out["date"].isna()]
-
-    return out
-
-
-@st.cache_data
-def normalize(df: pd.DataFrame) -> pd.DataFrame:
-    out = df.copy()
-
-    # Remove money from cb - 1k
-    out = out[
-        ~(
-            (out[CashFlow.Earning] == 1000)
-            & (out["description"].str.contains("MENSILE"))
-        )
-    ]
-    # Assume rent is 1k less
-    out.loc[
-        (out[CashFlow.Expense] == 1200) & (out["description"].str.contains("AFFITTO")),
-        CashFlow.Expense,
-    ] -= 1000
-
-    return out
-
-
-@st.cache_data
 def within_period(df: pd.DataFrame, date_from: date, date_to: date) -> pd.DataFrame:
-    # first_day_curr_month = date_from.replace(day=1)
-    # first_day_next_month = date_to.replace(day=1) + relativedelta(months=1)
-
     return df[(df["date"] >= date_from) & (df["date"] <= date_to)]
 
 
