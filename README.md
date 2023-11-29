@@ -1,6 +1,14 @@
 
 # 📈 Expenses
 
+#### An simple way to monitor how you earn and spend your money. Extensible to any bank.
+
+
+<p align="center">
+  <img src="thumbnail.png" alt="Thumbnail" width="100%" />
+</p>
+
+
 
 ## 📖 Table of Contents
 - [📖 Table of Contents](#-table-of-contents)
